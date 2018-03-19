@@ -1,10 +1,14 @@
 package hex.glrm;
 
+import hex.CreateFrame;
 import hex.DataInfo;
 import hex.ModelMetrics;
+import hex.SplitFrame;
 import hex.genmodel.algos.glrm.GlrmInitialization;
 import hex.genmodel.algos.glrm.GlrmLoss;
 import hex.genmodel.algos.glrm.GlrmRegularizer;
+import hex.glm.GLM;
+import hex.glm.GLMModel;
 import hex.glrm.GLRMModel.GLRMParameters;
 import hex.pca.PCA;
 import hex.pca.PCAModel;
@@ -28,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import static org.junit.Assert.assertTrue;
@@ -388,6 +393,58 @@ public class GLRMTest extends TestUtil {
       if (model != null) model.delete();
     }
   }
+
+  @Test
+  public void testGLRMPredMojo() {
+    try {
+      Scope.enter();
+      CreateFrame cf = new CreateFrame();
+      Random generator = new Random();
+      int numRows = generator.nextInt(10000)+15000+200;
+      int numCols = generator.nextInt(17)+3;
+      cf.rows= numRows;
+      cf.cols = numCols;
+      cf.binary_fraction=0;
+      cf.string_fraction=0;
+      cf.time_fraction=0;
+      cf.categorical_fraction=0;
+      cf.has_response=false;
+      cf.positive_response=true;
+      cf.missing_fraction = 0;
+      cf.seed = System.currentTimeMillis();
+      System.out.println("Createframe parameters: rows: "+numRows+" cols:"+numCols+" seed: "+cf.seed);
+
+      Frame trainMultinomial = Scope.track(cf.execImpl().get());
+      SplitFrame sf = new SplitFrame(trainMultinomial, new double[]{0.8,0.2}, new Key[] {Key.make("train.hex"), Key.make("test.hex")});
+      sf.exec().get();
+      Key[] ksplits = sf._destination_frames;
+      Frame tr = DKV.get(ksplits[0]).get();
+      Frame te = DKV.get(ksplits[1]).get();
+      Scope.track(tr);
+      Scope.track(te);
+
+      GLMModel.GLMParameters paramsO = new GLMModel.GLMParameters(GLMModel.GLMParameters.Family.ordinal,
+              GLMModel.GLMParameters.Family.ordinal.defaultLink, new double[]{0}, new double[]{0}, 0, 0);
+      paramsO._train = tr._key;
+      paramsO._lambda_search = false;
+      paramsO._response_column = "response";
+      paramsO._lambda = new double[]{0};
+      paramsO._alpha = new double[]{0.001};  // l1pen
+      paramsO._objective_epsilon = 1e-6;
+      paramsO._beta_epsilon = 1e-4;
+      paramsO._standardize = false;
+
+      GLMModel model = new GLM(paramsO).trainModel().get();
+      Scope.track_generic(model);
+
+      Frame pred = model.score(te);
+      Scope.track(pred);
+      Assert.assertTrue(model.testJavaScoring(te, pred, 1e-6));
+    } finally {
+      Scope.exit();
+    }
+  }
+
 
   @Test public void testMojo() throws InterruptedException, ExecutionException {
     GLRM glrm;
