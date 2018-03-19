@@ -7,8 +7,6 @@ import hex.SplitFrame;
 import hex.genmodel.algos.glrm.GlrmInitialization;
 import hex.genmodel.algos.glrm.GlrmLoss;
 import hex.genmodel.algos.glrm.GlrmRegularizer;
-import hex.glm.GLM;
-import hex.glm.GLMModel;
 import hex.glrm.GLRMModel.GLRMParameters;
 import hex.pca.PCA;
 import hex.pca.PCAModel;
@@ -35,6 +33,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
+
 import static org.junit.Assert.assertTrue;
 
 public class GLRMTest extends TestUtil {
@@ -423,23 +422,28 @@ public class GLRMTest extends TestUtil {
       Scope.track(tr);
       Scope.track(te);
 
-      GLMModel.GLMParameters paramsO = new GLMModel.GLMParameters(GLMModel.GLMParameters.Family.ordinal,
-              GLMModel.GLMParameters.Family.ordinal.defaultLink, new double[]{0}, new double[]{0}, 0, 0);
-      paramsO._train = tr._key;
-      paramsO._lambda_search = false;
-      paramsO._response_column = "response";
-      paramsO._lambda = new double[]{0};
-      paramsO._alpha = new double[]{0.001};  // l1pen
-      paramsO._objective_epsilon = 1e-6;
-      paramsO._beta_epsilon = 1e-4;
-      paramsO._standardize = false;
+      GLRMParameters parms = new GLRMParameters();
+      parms._train = tr._key;
+      parms._k = 4;
+      parms._loss = GlrmLoss.Quadratic;
+      parms._init = GlrmInitialization.Random;
+      parms._max_iterations = 2000;
+      parms._regularization_x = GlrmRegularizer.Quadratic;
+      parms._gamma_x = 0;
+      parms._gamma_y = 0;
 
-      GLMModel model = new GLM(paramsO).trainModel().get();
+      GLRM glrm = new GLRM(parms);
+      GLRMModel model = glrm.trainModel().get();
+
       Scope.track_generic(model);
 
-      Frame pred = model.score(te);
-      Scope.track(pred);
-      Assert.assertTrue(model.testJavaScoring(te, pred, 1e-6));
+      Frame predT = model.score(te); // predict on new data and compare with mojo
+      Scope.track(predT);
+      Assert.assertTrue(model.testJavaScoring(te, model._output._representation_key.get(), 1e-6));
+      Frame predTr = model.score(tr); // predict on training data and compare with mojo
+      Scope.track(predTr);
+      Assert.assertTrue(model.testJavaScoring(tr, model._output._representation_key.get(), 1e-6));
+
     } finally {
       Scope.exit();
     }
