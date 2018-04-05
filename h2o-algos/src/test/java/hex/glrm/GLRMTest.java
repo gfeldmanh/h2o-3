@@ -393,6 +393,8 @@ public class GLRMTest extends TestUtil {
     }
   }
 
+  // Need to test when we are calling predict with the training dataset and calling predict with a new
+  // dataset, the operations here will be different.
   @Test
   public void testGLRMPredMojo() {
     try {
