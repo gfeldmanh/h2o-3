@@ -214,6 +214,8 @@ public class GLRMModel extends Model<GLRMModel, GLRMModel.GLRMParameters, GLRMMo
   //--------------------------------------------------------------------------------------------------------------------
 
   // GLRM scoring is data imputation based on feature domains using reconstructed XY (see Udell (2015), Section 5.3)
+  // Check if the frame is the same as used in training.  If yes, return the XY.  Otherwise, take the archetypes and
+  // generate new coefficients for it and then do X*Y
   private Frame reconstruct(Frame orig, Frame adaptedFr, Key<Frame> destination_key, boolean save_imputed, boolean reverse_transform) {
     int ncols = _output._names.length;
     assert ncols == adaptedFr.numCols();
