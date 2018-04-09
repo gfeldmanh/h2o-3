@@ -1,6 +1,8 @@
 package water.fvec
 
-import org.junit.{Assert, Test, BeforeClass}
+import java.net.URI
+
+import org.junit.{Assert, BeforeClass, Test}
 import water.util.FileUtils
 import water.TestUtil
 import water.parser.ParseSetup
@@ -9,6 +11,15 @@ import water.parser.ParseSetup
  * Tests for exposed frame operations.
  */
 class FrameOpsTest extends TestUtil {
+
+  @Test
+  def testImportFromHTTP(): Unit = {
+    val fr = new H2OFrame(URI.create("http://s3.amazonaws.com/h2o-public-test-data/smalldata/airlines/AirlinesTest.csv.zip"))
+    assert(fr.numCols() == 12)
+    assert(fr.numRows() == 2691)
+    assert(fr.anyVec().nChunks() == 1)
+    fr.delete()
+  }
 
   @Test
   def testParserSetup(): Unit = {
