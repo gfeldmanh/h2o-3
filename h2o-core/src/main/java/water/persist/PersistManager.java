@@ -209,7 +209,7 @@ public class PersistManager {
       ikey = I[Value.NFS].uriToKey(uri);
     } else if (useHdfsAsFallback() && I[Value.HDFS].canHandle(uri.toString())) {
       ikey = I[Value.HDFS].uriToKey(uri);
-    }else {
+    } else {
       throw new H2OIllegalArgumentException("Unsupported schema '" + scheme + "' for given uri " + uri);
     }
     return ikey;
