@@ -344,7 +344,7 @@ public final class PersistS3 extends Persist {
     if (System.getProperty(S3_REGION) != null) {
       String region = System.getProperty(S3_REGION);
       Log.debug("S3 region specified: ", region);
-      s3Client.setRegion(RegionUtils.getRegion(region));
+      s3Client.setRegion(RegionUtils.getRegionMetadata().getRegion(region));
     }
     // Region overrides end-point settings
     if (System.getProperty(S3_END_POINT) != null) {
